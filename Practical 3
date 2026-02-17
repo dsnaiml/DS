@@ -1,0 +1,78 @@
+import numpy as np
+import cv2
+import os
+import matplotlib.pyplot as plt
+
+from sklearn.datasets import fetch_olivetti_faces
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+
+# ---------- LOAD DATASET ----------
+path = r"C:\Users\mech\Desktop\PHY\olivetti_faces.npy"
+
+if os.path.exists(path):
+    imgs = np.load(path)
+    labels = np.array([i // 10 for i in range(len(imgs))])
+else:
+    data = fetch_olivetti_faces()
+    imgs, labels = data.images, data.target
+
+print("Dataset:", imgs.shape, "| Classes:", len(np.unique(labels)))
+
+# ---------- PREPROCESS ----------
+# Convert grayscale (0-1 float) → uint8 (0-255)
+imgs = (imgs * 255).astype("uint8")
+
+# Convert to 3-channel only once (vectorized)
+imgs = np.stack([cv2.cvtColor(im, cv2.COLOR_GRAY2BGR) for im in imgs])
+
+# ---------- FEATURE EXTRACTION (FASTER) ----------
+def extract_hist_features(images):
+    feats = []
+    for im in images:
+        hist = []
+        for c in range(3):
+            h = cv2.calcHist([im], [c], None, [256], [0, 256])
+            h = cv2.normalize(h, h).flatten()
+            hist.append(h)
+        feats.append(np.concatenate(hist))
+    return np.array(feats, dtype=np.float32)
+
+features = extract_hist_features(imgs)
+print("Feature Shape:", features.shape)
+
+# ---------- TRAIN/TEST SPLIT ----------
+Xtr, Xte, Ytr, Yte, Imtr, Imte = train_test_split(
+    features, labels, imgs,
+    test_size=0.2,
+    random_state=42,
+    stratify=labels
+)
+
+# ---------- MODEL (OPTIMIZED RF) ----------
+model = RandomForestClassifier(
+    n_estimators=150,     # faster but strong
+    max_depth=None,
+    n_jobs=-1,            # use all CPU cores
+    random_state=42
+)
+
+model.fit(Xtr, Ytr)
+
+# ---------- PREDICTION ----------
+pred = model.predict(Xte)
+acc = accuracy_score(Yte, pred)
+print("Accuracy:", round(acc * 100, 2), "%")
+
+# ---------- DISPLAY ----------
+plt.figure(figsize=(10, 8))
+for i in range(6):
+    plt.subplot(2, 3, i + 1)
+    plt.imshow(cv2.cvtColor(Imte[i], cv2.COLOR_BGR2RGB))
+    plt.title(f"A:{Yte[i]} | P:{pred[i]}")
+    plt.axis("off")
+
+plt.suptitle("Color Face Recognition Output")
+plt.tight_layout()
+plt.show()
