@@ -1,0 +1,34 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+path = r"C:\Users\ganes\Downloads\predective maintaince or machine Failure\machine_failure_dataset(1).csv"
+df = pd.read_csv(path)
+states = ["Working", "Failed"]
+failure_data = df["Failure"].values
+transition_counts = np.zeros((2, 2))
+for i in range(len(failure_data) - 1):
+    current_state = failure_data[i]
+    next_state = failure_data[i + 1]
+    transition_counts[current_state][next_state] += 1
+
+transition_matrix = transition_counts / transition_counts.sum(axis=1, keepdims=True)
+current_state = failure_data[0]
+history = []
+plt.ion()
+for i in range(50):
+    current_state = np.random.choice(
+        [0, 1],
+        p=transition_matrix[current_state]
+    )
+    
+    history.append(current_state)
+    plt.clf()
+    plt.plot(history, marker='o')
+    plt.yticks([0, 1], states)
+    plt.title("Machine Maintenance (Markov Process)")
+    plt.xlabel("Time Step")
+    plt.ylabel("State")
+    plt.pause(0.2)
+plt.ioff()
+plt.show()
