@@ -1,0 +1,25 @@
+import numpy as np
+import matplotlib.pyplot as plt
+transition_matrix = np.array([
+    [0.8, 0.2], 
+    [0.6, 0.4]   
+])
+states = ["Working", "Failed"]
+current_state = 0
+history = []
+plt.ion()  
+for i in range(50):
+    
+    current_state = np.random.choice([0, 1],
+                                     p=transition_matrix[current_state])
+    history.append(current_state)
+   
+    plt.clf()
+    plt.plot(history, marker='o')
+    plt.yticks([0, 1], states)
+    plt.title("Machine Maintenance (Markov Process)")
+    plt.xlabel("Time Step")
+    plt.ylabel("State")
+    plt.pause(0.2)
+plt.ioff()  
+plt.show()
